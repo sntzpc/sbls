@@ -1,0 +1,19 @@
+/* Layout basics */
+body { overflow-y: scroll; }
+
+/* Table nowrap & horizontal scroll for mobile */
+.nowrap-x { overflow-x: auto; }
+.nowrap-x table { white-space: nowrap; }
+
+/* Sticky table header (already uses .sticky-top on thead) */
+table thead th { position: sticky; top: 0; z-index: 1; }
+
+/* Preview pane (PDF/DOCX preview layout) */
+.preview-pane { min-height: 420px; max-height: 70vh; overflow: auto; background: #fff; border: 1px solid #eee; }
+.preview-pane h5 { margin-top: .5rem; }
+
+/* Logs */
+.sync-log { max-height: 240px; overflow: auto; }
+
+/* Minor tweaks */
+.card-header, .card-footer { background: #f9fafb; }
