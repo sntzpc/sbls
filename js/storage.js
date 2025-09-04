@@ -24,7 +24,9 @@ export function getAll(){
   return raw ? JSON.parse(raw) : [];
 }
 export function setAll(arr){
-  localStorage.setItem(NS, JSON.stringify(arr||[]));
+  const data = arr||[];
+  localStorage.setItem(NS, JSON.stringify(data));
+  _rebuildSuggestions(data);
 }
 export function upsert(record){
   const all = getAll();
@@ -114,3 +116,42 @@ export const SHEET_HEADERS = [
   'judul','deskripsi','kompetensi_acuan','tujuan_json','materi_json','durasi_teori_jam','durasi_praktik_jam',
   'trainer_json','peserta','evaluasi_json','catatan'
 ];
+
+// ==== Auto-suggest bag ====
+export const SUGG = 'AT_SUGG_V1';
+
+function _emptySugg(){
+  return { rumpun:[], tujuan:[], materi:[], trainer:[], evaluasi:[], peserta:[] };
+}
+export function getSuggestions(){
+  const raw = localStorage.getItem(SUGG);
+  return raw ? JSON.parse(raw) : _emptySugg();
+}
+function _rebuildSuggestions(all){
+  const bag = _emptySugg();
+  const seen = {
+    rumpun:new Set(), tujuan:new Set(), materi:new Set(), trainer:new Set(), evaluasi:new Set(), peserta:new Set()
+  };
+  const add = (key, val)=>{
+    const s = String(val||'').trim();
+    if(!s) return;
+    const k = s.toLowerCase();
+    if(seen[key].has(k)) return;
+    seen[key].add(k);
+    bag[key].push(s);
+  };
+
+  for(const r of all){
+    add('rumpun', r.rumpun_pekerjaan);
+    add('peserta', r.peserta);
+    (r.tujuan||[]).forEach(v=>add('tujuan', v));
+    (r.materi||[]).forEach(v=>add('materi', v));
+    (r.trainer||[]).forEach(v=>add('trainer', v));
+    (r.evaluasi||[]).forEach(v=>add('evaluasi', v));
+  }
+
+  // urutkan alfabetis ringan
+  Object.keys(bag).forEach(k=> bag[k].sort((a,b)=>a.localeCompare(b,'id',{sensitivity:'base'})));
+  localStorage.setItem(SUGG, JSON.stringify(bag));
+  return bag;
+}

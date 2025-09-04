@@ -3,7 +3,7 @@
 import { getConfig, setConfig, SHEET_HEADERS, toRow, fromRow, getAll, setAll } from './storage.js';
 
 // SET URL WEB APP GAS ANDA DI SINI:
-export const GAS_URL = 'https://script.google.com/macros/s/AKfycbzUF8tstrSiwfzpONnl6G6tnI_2O40EBj8r1O-kXRo3cNZIYotg6d6ikK6Kp5C2_ko/exec';
+export const GAS_URL = 'https://script.google.com/macros/s/AKfycbxoiuCgvnY3X2pYwiD1tA1Lk5YOrg7_wxzTgQuFm3qwM2R7x36bOYSpQqFe33BSY1MJ/exec';
 
 async function post(route, payload){
   const body = JSON.stringify({

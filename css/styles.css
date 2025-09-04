@@ -17,3 +17,18 @@ table thead th { position: sticky; top: 0; z-index: 1; }
 
 /* Minor tweaks */
 .card-header, .card-footer { background: #f9fafb; }
+
+/* ==== Auto-suggest (textarea) ==== */
+.sugg-menu{
+  position: fixed;
+  background:#fff;
+  border:1px solid #dee2e6;
+  border-radius:.375rem;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  z-index:1051;
+  max-height:260px;
+  overflow:auto;
+  min-width:260px;
+}
+.sugg-item{ padding:.375rem .5rem; cursor:pointer; }
+.sugg-item:hover, .sugg-item.active{ background:#e9f5ee; }

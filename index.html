@@ -109,7 +109,7 @@
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Rumpun Pekerjaan</label>
-                    <input class="form-control" id="rumpun_pekerjaan" placeholder="AGRONOMY">
+                    <input class="form-control" id="rumpun_pekerjaan" list="dlRumpun" placeholder="AGRONOMY">
                   </div>
                   <div class="col-md-8">
                     <label class="form-label">Judul</label>
@@ -141,7 +141,7 @@
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Peserta</label>
-                    <input class="form-control" id="peserta" placeholder="Akademi Tanam">
+                    <input class="form-control" id="peserta" list="dlPeserta" placeholder="Akademi Tanam">
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Durasi Teori (jam)</label>
@@ -299,5 +299,7 @@
   <script type="module" src="./js/export.js"></script>
   <script type="module" src="./js/ui.js"></script>
   <script type="module" src="./js/app.js"></script>
+  <datalist id="dlRumpun"></datalist>
+  <datalist id="dlPeserta"></datalist>
 </body>
 </html>

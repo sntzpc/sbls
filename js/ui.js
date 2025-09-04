@@ -1,5 +1,5 @@
 // ui.js — render tampilan, tabel, form, preview, navbar auto-hide
-import { getAll, upsert, byId, removeById, normalizeFormData, getConfig, setConfig } from './storage.js';
+import { getAll, upsert, byId, removeById, normalizeFormData, getConfig, setConfig, getSuggestions } from './storage.js';
 import { apiInit, apiHeaders, apiPullOverwrite, apiPushUpsert } from './api.js';
 import { exportDOCX, exportXLSX, exportPDF } from './export.js';
 
@@ -67,10 +67,8 @@ export function initUI(){
   $('#btnDelete').addEventListener('click', ()=>delCurrent());
 
   // First render
-  renderStats();
-  renderList();
-  loadForm(getAll()[0]?.id || null);
-  showView('#viewDashboard');
+showView('#viewDashboard');
+bootstrapAndPullOnLoad();
 }
 
 // ======= Views =======
@@ -88,6 +86,134 @@ function log(where, title, obj){
 async function tryRun(fn){
   try{ await fn(); }catch(e){ alert(e.message||e); console.error(e); }
 }
+
+// ==== Refresh datalist & textarea suggest ====
+function refreshSuggestionsUI(){
+  const bag = getSuggestions();
+  // isi datalist (Rumpun, Peserta)
+  const dlR = document.getElementById('dlRumpun');
+  const dlP = document.getElementById('dlPeserta');
+  if(dlR) dlR.innerHTML = bag.rumpun.map(v=>`<option value="${esc(v)}">`).join('');
+  if(dlP) dlP.innerHTML = bag.peserta.map(v=>`<option value="${esc(v)}">`).join('');
+
+  // pasang suggestor untuk textarea (dengan sumber data dinamis)
+  attachTextareaSuggest(document.getElementById('tujuan'),   ()=>getSuggestions().tujuan);
+  attachTextareaSuggest(document.getElementById('materi'),   ()=>getSuggestions().materi);
+  attachTextareaSuggest(document.getElementById('trainer'),  ()=>getSuggestions().trainer);
+  attachTextareaSuggest(document.getElementById('evaluasi'), ()=>getSuggestions().evaluasi);
+}
+
+// ===== Dropdown suggest untuk TEXTAREA per-baris =====
+let _suggMenu, _suggActive = -1, _suggList = [], _suggTarget;
+
+function ensureSuggMenu(){
+  if(_suggMenu) return _suggMenu;
+  _suggMenu = document.createElement('div');
+  _suggMenu.className = 'sugg-menu d-none';
+  document.body.appendChild(_suggMenu);
+  return _suggMenu;
+}
+function hideMenu(){ if(_suggMenu) _suggMenu.classList.add('d-none'); _suggActive = -1; _suggList = []; _suggTarget=null; }
+function moveActive(d){
+  if(!_suggList.length) return;
+  _suggActive = (_suggActive + d + _suggList.length) % _suggList.length;
+  [..._suggMenu.querySelectorAll('.sugg-item')].forEach((el,i)=> el.classList.toggle('active', i===_suggActive));
+}
+function replaceCurrentLine(textarea, replacement){
+  const val = textarea.value;
+  const caret = textarea.selectionStart;
+  const lnStart = val.lastIndexOf('\n', caret-1) + 1;
+  const lnEnd = val.indexOf('\n', caret);
+  const s = Math.max(0, lnStart);
+  const e = (lnEnd === -1 ? val.length : lnEnd);
+  const before = val.slice(0, s);
+  const after  = val.slice(e);
+  const ins = replacement;
+  textarea.value = before + ins + after;
+  const pos = (before + ins).length;
+  textarea.setSelectionRange(pos, pos);
+  textarea.dispatchEvent(new Event('input', {bubbles:true}));
+}
+function showMenuFor(textarea, items){
+  const m = ensureSuggMenu();
+  m.innerHTML = '';
+  _suggList = items.slice(0, 8);
+  _suggActive = -1;
+  _suggTarget = textarea;
+
+  _suggList.forEach((txt, i)=>{
+    const item = document.createElement('div');
+    item.className = 'sugg-item';
+    item.textContent = txt;
+    item.dataset.val = txt;
+    item.addEventListener('mousedown', (ev)=>{ // mousedown supaya tidak hilang karena blur
+      ev.preventDefault();
+      replaceCurrentLine(textarea, txt);
+      hideMenu();
+    });
+    m.appendChild(item);
+  });
+
+  const rect = textarea.getBoundingClientRect();
+  m.style.left = (rect.left + window.scrollX) + 'px';
+  m.style.top  = (rect.bottom + window.scrollY) + 'px';
+  m.style.width = rect.width + 'px';
+  m.classList.toggle('d-none', _suggList.length === 0);
+}
+function attachTextareaSuggest(textarea, sourceFn){
+  if(!textarea || textarea.dataset.suggBound === '1') return;
+  textarea.dataset.suggBound = '1';
+
+  textarea.addEventListener('input', ()=>{
+    const src = (typeof sourceFn==='function' ? sourceFn() : []);
+    const val = textarea.value;
+    const caret = textarea.selectionStart;
+    const lnStart = val.lastIndexOf('\n', caret-1) + 1;
+    const typed = val.slice(lnStart, caret).trim().toLowerCase();
+    if(!typed){ hideMenu(); return; }
+    const matches = src.filter(s=> s.toLowerCase().includes(typed));
+    if(matches.length) showMenuFor(textarea, matches);
+    else hideMenu();
+  });
+
+  textarea.addEventListener('keydown', (e)=>{
+    if(!_suggMenu || _suggMenu.classList.contains('d-none')) return;
+    if(e.key === 'ArrowDown'){ e.preventDefault(); moveActive(1); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); moveActive(-1); }
+    else if(e.key === 'Enter'){ 
+      if(_suggActive >= 0){ e.preventDefault(); const txt = _suggList[_suggActive]; replaceCurrentLine(textarea, txt); hideMenu(); }
+    }
+    else if(e.key === 'Escape'){ hideMenu(); }
+  });
+
+  textarea.addEventListener('blur', ()=> setTimeout(hideMenu, 150));
+}
+
+async function bootstrapAndPullOnLoad(){
+  try {
+    // Jika belum ada spreadsheetId di config → init (akan mengembalikan ID master yang tersimpan di GAS)
+    let cfg = getConfig();
+    if(!cfg.spreadsheetId){
+      const r = await apiInit(); // { spreadsheetId, spreadsheetUrl, ... }
+      if(r?.spreadsheetId){
+        setConfig({ spreadsheetId: r.spreadsheetId });
+        log('#syncLog', 'BOOTSTRAP (init)', { spreadsheetId: r.spreadsheetId });
+      }
+    }
+    // Selalu tarik data terbaru dari Sheet → overwrite localStorage
+    const res = await apiPullOverwrite();
+    log('#syncLog', 'AUTO PULL on load', { count: res.count });
+  } catch (e){
+    console.error(e);
+    // tidak blok UI; user masih bisa pakai mode lokal
+  } finally {
+    // Render ulang setelah bootstrap/pull (agar daftar & editor langsung terisi)
+    renderList(); renderStats();
+    refreshSuggestionsUI();
+    loadForm(getAll()[0]?.id || null);
+  }
+}
+
 
 // ======= Stats, List, Editor =======
 function renderStats(){
@@ -171,6 +297,7 @@ function renderList(){
     }
 
     tbody.appendChild(tr);
+    refreshSuggestionsUI(); 
   }
 }
 
@@ -245,6 +372,7 @@ function saveForm(){
   upsert(rec);
   setForm(rec);
   renderList(); renderStats();
+  refreshSuggestionsUI();
   alert('Tersimpan di lokal.');
 }
 
