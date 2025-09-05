@@ -18,7 +18,9 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.43.0/build/docxtemplater.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="bg-light">
   <!-- NAVBAR: auto collapse on mobile -->
@@ -36,11 +38,34 @@
           <li class="nav-item"><a class="nav-link nav-auto-hide" data-target="#viewSync" href="#">Sinkronisasi</a></li>
           <li class="nav-item"><a class="nav-link nav-auto-hide" data-target="#viewSettings" href="#">Pengaturan</a></li>
         </ul>
-        <div class="d-flex gap-2">
-          <button class="btn btn-outline-light btn-sm" id="btnExportDocx"><i class="bi bi-file-word me-1"></i>DOCX</button>
-          <button class="btn btn-outline-light btn-sm" id="btnExportXlsx"><i class="bi bi-file-spreadsheet me-1"></i>XLSX</button>
-          <button class="btn btn-outline-light btn-sm" id="btnExportPdf"><i class="bi bi-file-pdf me-1"></i>PDF</button>
-        </div>
+<div class="d-flex gap-2">
+  <!-- DOCX -->
+  <div class="btn-group">
+    <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-file-word me-1"></i>DOCX
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item" href="#" id="btnExportDocxOne">Cetak DOCX – yang dipilih</a></li>
+      <li><a class="dropdown-item" href="#" id="btnExportDocxAll">Cetak DOCX – semua</a></li>
+    </ul>
+  </div>
+
+  <!-- XLSX (tetap satu tombol, ekspor semua baris) -->
+  <button class="btn btn-outline-light btn-sm" id="btnExportXlsx">
+    <i class="bi bi-file-spreadsheet me-1"></i>XLSX
+  </button>
+
+  <!-- PDF -->
+  <div class="btn-group">
+    <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item" href="#" id="btnExportPdfOne">Cetak PDF – yang dipilih</a></li>
+      <li><a class="dropdown-item" href="#" id="btnExportPdfAll">Cetak PDF – semua</a></li>
+    </ul>
+  </div>
+</div>
       </div>
     </div>
   </nav>
@@ -301,5 +326,18 @@
   <script type="module" src="./js/app.js"></script>
   <datalist id="dlRumpun"></datalist>
   <datalist id="dlPeserta"></datalist>
+
+  <!-- Toast container (progress) -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+  <div id="progressToast" class="toast align-items-center text-bg-dark border-0" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="1000">
+    <div class="d-flex">
+      <div class="toast-body" id="progressToastBody">
+        Menyiapkan...
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

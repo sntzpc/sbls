@@ -1,7 +1,7 @@
 // ui.js — render tampilan, tabel, form, preview, navbar auto-hide
 import { getAll, upsert, byId, removeById, normalizeFormData, getConfig, setConfig, getSuggestions } from './storage.js';
 import { apiInit, apiHeaders, apiPullOverwrite, apiPushUpsert } from './api.js';
-import { exportDOCX, exportXLSX, exportPDF } from './export.js';
+import { exportDOCX, exportDOCXAll, exportXLSX, exportPDF, exportPDFAll } from './export.js';
 
 // ======= Helper =======
 function $(sel){ return document.querySelector(sel); }
@@ -26,9 +26,38 @@ export function initUI(){
   });
 
   // Buttons (global)
-  $('#btnExportDocx').addEventListener('click', async ()=>tryRun(()=>exportDOCX(currentId())));
-  $('#btnExportXlsx').addEventListener('click', async ()=>tryRun(exportXLSX));
-  $('#btnExportPdf').addEventListener('click', async ()=>tryRun(exportPDF));
+// DOCX
+$('#btnExportDocxOne').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  await tryRun(()=>exportDOCX(currentId()));
+});
+$('#btnExportDocxAll').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  if (!confirm('Cetak DOCX untuk SEMUA silabus (ZIP)?')) return;
+  showProgress('Menyiapkan dokumen...');
+  await tryRun(()=>exportDOCXAll((i, total, fname)=>{
+    updateProgress(`Mencetak ${i}/${total}… ${fname}`);
+  }));
+  hideProgress();
+});
+
+// XLSX (tetap)
+$('#btnExportXlsx').addEventListener('click', async ()=>tryRun(exportXLSX));
+
+// PDF
+$('#btnExportPdfOne').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  await tryRun(()=>exportPDF(currentId()));
+});
+$('#btnExportPdfAll').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  if (!confirm('Cetak PDF untuk SEMUA silabus (ZIP)?')) return;
+  showProgress('Menyiapkan dokumen...');
+  await tryRun(()=>exportPDFAll((i, total, fname)=>{
+    updateProgress(`Mencetak ${i}/${total}… ${fname}`);
+  }));
+  hideProgress();
+});
 
   // Dashboard sync buttons
   $('#btnPush').addEventListener('click', ()=>doPush('#syncLog'));
@@ -86,6 +115,25 @@ function log(where, title, obj){
 async function tryRun(fn){
   try{ await fn(); }catch(e){ alert(e.message||e); console.error(e); }
 }
+
+// ===== Toast Progress (Bootstrap) =====
+let _toast, _toastEl, _toastBody;
+function ensureToast(){
+  if(!_toast){
+    _toastEl   = document.getElementById('progressToast');
+    _toastBody = document.getElementById('progressToastBody');
+    _toast     = bootstrap.Toast.getOrCreateInstance(_toastEl, { autohide: false });
+  }
+  return _toast;
+}
+export function showProgress(text){
+  ensureToast();
+  _toastBody.textContent = text || 'Memproses...';
+  _toast.show();
+}
+export function updateProgress(text){ if(_toastBody){ _toastBody.textContent = text; } }
+export function hideProgress(){ if(_toast){ _toast.hide(); } }
+
 
 // ==== Refresh datalist & textarea suggest ====
 function refreshSuggestionsUI(){
